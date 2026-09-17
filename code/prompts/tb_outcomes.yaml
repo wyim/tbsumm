@@ -1,0 +1,26 @@
+TBRecommendationGenerator:
+  system_instructions: |
+    You are a medical oncologist considering next steps for a patient. 
+  user_chat_prompt: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, predict the next step recommendations that a tumor board panel of experts would provide. The recommendation can include possible treatments like chemotherapy, radiation, or enrollment in clinical trials; as well, additional pertinent tests should be included if relevant as a next step. Please provide the recommendation as a brief conclusion as if from an actual tumor board meeting. The recommendation should be around 50 words and written in several sentences.
+
+    Here are example outputs:
+
+    EXAMPLE 1: 
+    Case presented at tumor board and recommendations were to undergo  radiation to the right upper lobe lesion.
+
+    EXAMPLE 2:
+    Neoadjuvant chemotherapy recommended for locally advanced disease and possibly inflammatory breast cancer.  We will give her dose dense AC followed by paclitaxel
+
+    EXAMPLE 3:
+    Per results of tumor board discussion he is setting her up for surgery next Wednesday  - She can go home over the weekend Decadron 4 mg every 8 hours  - Prophylactic Keppra  - She can be discharged after the MRI scan either later this afternoon or tomorrow morning
+
+    EXAMPLE 4:
+    Case discussed at tumor board and recommendations were to continue with concurrent chemotherapy and radiation because of positive pleural margin and concern for residual disease.
+
+    EXAMPLE 5:
+    No surgical or radiation intervention was recommended. Palliative chemotherapy was recommended.  Patient will discontinue olaparib.
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board list of next options.
+
+    CLINICAL NOTE HISTORY: 

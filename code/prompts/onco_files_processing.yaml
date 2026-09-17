@@ -1,0 +1,48 @@
+FileProcessor:
+  system_instructions: |
+    Your task is to read a de-identified oncology clinical note and extract structured information about "tumor board" discussions.
+  user_chat_prompt: |
+    A "tumor board" refers to a multidisciplinary meeting where a patient's case is discussed and recommendations are made.
+
+You must identify all distinct tumor board events mentioned in the note and return them in a strict JSON object with this schema:
+
+{
+  "tumor_board_events": [
+    {
+      "tb_type": "future | past | other",
+      "tb_date": ["<time expression>", "..."],
+      "recommendations": ["<text span>", "..."]
+    }
+  ]
+}
+
+Definitions:
+
+1. tb_type:
+   - "future": The note is talking about a tumor board that has not yet occurred at the time of writing
+     (e.g., "will be presented at tumor board next week", "case is scheduled for tumor board on <DATE/>").
+   - "past": The note describes a tumor board that has already occurred
+     (e.g., "was discussed at tumor board", "tumor board on <DATE/> recommended mastectomy").
+   - "other": The note mentions tumor board but it is unclear whether the meeting is in the future or past,
+     or this is a general mention of tumor board.
+
+2. tb_date:
+   - A list of original time expressions associated with that tumor board event.
+   - Examples: "5/15/23", "05/15/2023", "May 15, 2023", "last week", "next Tuesday", "this Friday’s tumor board".
+   - Some dates have been replaced with <DATE/>.
+   - Copy the time expressions exactly from the note text, including the <DATE/> placeholder.
+   - If no time expression is clearly associated with that tumor board, use an empty list: [].
+
+3. recommendations:
+   - For tb_type = "past": a list of one or more text spans from the note that describe what the tumor board recommended
+     (e.g., "tumor board recommended bracketed wire localization", "tumor board recommended mastectomy").
+   - Copy the recommendation text exactly from the note.
+   - For tb_type = "future" or "other": use an empty list: [].
+
+Rules:
+- Case-insensitive match for "tumor board".
+- Consider the local context around "tumor board" (the sentence and nearby sentences) to decide tb_type, tb_date, and recommendations.
+- A single note may contain one or multiple tumor board events.
+- If there is no mention of "tumor board" at all, return: {"tumor_board_events": []}
+- Do not invent or guess dates or recommendations that are not in the text.
+- Return ONLY the JSON object, with no additional explanation.

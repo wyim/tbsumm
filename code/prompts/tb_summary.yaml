@@ -1,0 +1,191 @@
+Summarizer:
+  system_instructions: |
+    You are a medical oncologist who is tasked to prepare patient summaries for presentation at a tumor board panel of experts.
+  user_chat_prompt: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, create a short paragraph summary of the patient's oncological history and present condition.
+
+    The summary MUST:
+    1. Start with the patient's age, gender, and tumor stage at diagnosis (if information is available).
+    2. Be sure to include any important biomarkers and genetic testing, relevant comorbidities, performance status, and family history.
+    3. In 1-4 sentences, briefly summarize critical information and events related the oncological history such as biopsy results, procedures, tests, treatments, and responses.
+    4. Include the reason for seeing the tumor board as well as any questions that should be posed to the tumor board panel.
+    5. The total number of words should be around 100 words. DO NOT exceed a total of 400 words.
+
+    Here are several example summary outputs:
+
+    Example Summary 1:
+    Mr. Roberts is a 71-year-old man with a history of hypertension and locally advanced pT3N1M0 prostate adenocarcinoma. He's a Gleason 3+4 prostate cancer. He was treated initially, with radical prostatectomy and pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis. He did not opt for adjuvant radiation at the time, despite being pT3b, and his PSA was undetectable postoperatively. In September, of 2021, his PSA was detectable at 0.31, so starting to rise. And he underwent 18F-DCFPyL PSMA PET to inform his decision-making. He is generally in an active and healthy condition.
+
+    Example Summary 2:
+    Patient is a 65-year-old male diagnosed on 01.09.2020 with an MGMT methylated and IDH wildtype glioblastoma in the left temporal lobe. Patient completed their surgery and subtotal resection of their multicentric lesion on 01.09.2020 and their chemoradiation on 03.17.2020. While completing their third cycle of adjuvant temozolomide therapy, suspected disease progression was reported within the left temporal lobe and the patient received further gamma knife radiation therapy. Following continued disease progression being reported during follow up MRIs, the patient initiated neoadjuvant immunotherapy with pembrolizumab on 09.28.2020 and received a secondary craniotomy and resection of the recurrent lesion from anteromedial left temporal lobe on 10.08.2020. Patient is currently receiving treatment with pembrolizumab and bevacizumab and wishes to determine alternative treatment options towards treating their multifocal disease after their last MRI demonstrated signs of further disease progression. Patient wishes to learn whether surgical options can still be explored after receiving confirmation from the Ivy Brain Tumor Center in Phoenix, AZ that they could potentially participate in one of their Phase 0 clinical studies.
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board summary.
+
+    CLINICAL NOTE HISTORY: 
+  user_chat_prompt_deid: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, create a short paragraph summary of the patient's oncological history and present condition.
+
+    The summary MUST:
+    1. Start with the patient's age, gender, and tumor stage at diagnosis (if information is available).
+    2. Be sure to include any important biomarkers and genetic testing, relevant comorbidities, performance status, and family history.
+    3. In 1-4 sentences, briefly summarize critical information and events related the oncological history such as biopsy results, procedures, tests, treatments, and responses.
+    4. Include the reason for seeing the tumor board as well as any questions that should be posed to the tumor board panel.
+    5. If the date shows up as a de-identified version, e.g. ([DATE: 29788]) please refer to the date in this format. The number represents days from the patient's date of birth, e.g. ([DATE: {DAYS_FROM_BIRTH}]).
+    6. The total number of words should be around 100 words. DO NOT exceed a total of 400 words.
+
+    Here are several example summary outputs:
+
+    Example Summary 1:
+    Mr. Roberts is a 71-year-old man with a history of hypertension and locally advanced pT3N1M0 prostate adenocarcinoma. He's a Gleason 3+4 prostate cancer. He was treated initially, with radical prostatectomy and pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis. He did not opt for adjuvant radiation at the time, despite being pT3b, and his PSA was undetectable postoperatively. In September, of 2021, his PSA was detectable at 0.31, so starting to rise. And he underwent 18F-DCFPyL PSMA PET to inform his decision-making. He is generally in an active and healthy condition.
+
+    Example Summary 2:
+    Patient is a 65-year-old male diagnosed on [DATE: 23725] with an MGMT methylated and IDH wildtype glioblastoma in the left temporal lobe. Patient completed their surgery and subtotal resection of their multicentric lesion on [DATE: 23725] and their chemoradiation on [DATE: 23793]. While completing their third cycle of adjuvant temozolomide therapy, suspected disease progression was reported within the left temporal lobe and the patient received further gamma knife radiation therapy. Following continued disease progression being reported during follow up MRIs, the patient initiated neoadjuvant immunotherapy with pembrolizumab on [DATE: 23988] and received a secondary craniotomy and resection of the recurrent lesion from anteromedial left temporal lobe on [DATE: 23995]. Patient is currently receiving treatment with pembrolizumab and bevacizumab and wishes to determine alternative treatment options towards treating their multifocal disease after their last MRI demonstrated signs of further disease progression. Patient wishes to learn whether surgical options can still be explored after receiving confirmation from the Ivy Brain Tumor Center in Phoenix, AZ that they could potentially participate in one of their Phase 0 clinical studies.
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board summary.
+
+    CLINICAL NOTE HISTORY:
+
+TimelineGenerator:
+  system_instructions: |
+    You are a medical oncologist who is tasked to prepare patient summaries for presentation at a tumor board panel of experts.
+  user_chat_prompt: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, create a semi-structured timeline of the patient's oncological history. This should include important events such as presenting illnesses, relevant imaging, tests, treatments, and responses to treatments.
+
+    The timeline MUST:
+    1. Be listed chronologically in order from the first occuring event to the latest.
+    2. Include the date of signigicant clinical event followed by a colon and a brief description of the event. Use month and year in MM/YYYY format, or month day, year in MM/DD/YYYY format, if given. If the event occurs over a range include a hypen between the start and end of the event. Use PRESENT if range goes until current date. Events should include clinically significant new symptoms, cancer growth as evidenced by imaging or tests, start of treatments, or significant changes in the patients' health.
+    3. Each entry should be in a seperate line.
+
+    Here are several example summary outputs:
+
+    Example Timeline 1:
+    08/2015: Patient initially presents with rising PSA. (2.3 in 2014, 5.45 in April 2015, 7.8 [10% free] July 2015). DRE: small symmetric gland, no nodules. MRI revealed 41 CC Gland. No focal abnormalities (PIRADS 2)
+    11/2015: Prostate biopsy revealed bilateral high grade PIN
+    05/2016: PSA 20.2, Free PSA 7.6%, with PHI 96. Unchanged MRI.
+    07/2016: Transperineal saturated biopsy revealed GG4 4 cores, GG3 1 core
+    07/2016: Tc-99cm Bone Scan and CT negative
+    09/2016: PSMA PET negative
+    09/2016: RALP with PLND, showed pT3bN0M0 GG3 with SV invasion
+    08/2021: PSA slowly rising in last year, currently at 0.13 ng/ml
+    08/2021: Restaging CT and Bone Scan Negative, IPSS 2. SHIM 19
+
+    Example Timeline 2:
+    01/09/2020: Craniotomy and subtotal resection of lesion from left temporal lobe
+    01/31/2020-03/17/2020: Radiation and concurrent temozolomide
+    04/20/2020-09/13/2020: Adjuvant temozolomide (6 cycles completed)
+    07/06/2020: Gamma Knife radiation therapy  (16Gy at 50% at posterior left temporal area and 16Gy at 50% at medial anterior left temporal area)
+    09/28/2020: Pembrolizumab
+    10/08/2020: Secondary craniotomy and resection of recurrent lesion from anteromedial left temporal lobe
+    10/19/2020-PRESENT: Pembrolizumab 
+    12/31/2020-PRESENT: Avastin
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board timeline.
+
+    CLINICAL NOTE HISTORY: 
+  user_chat_prompt_deid: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, create a semi-structured timeline of the patient's oncological history. This should include important events such as presenting illnesses, relevant imaging, tests, treatments, and responses to treatments.
+
+    The timeline MUST:
+    1. Be listed chronologically in order from the first occuring event to the latest.
+    2. Include the date of signigicant clinical event followed by a colon and a brief description of the event. If the date shows up as a de-identified version, e.g. ([DATE: 29788]), please refer to the date in this format. The number represents days from the patient's date of birth, e.g. ([DATE: {DAYS_FROM_BIRTH}]). However, if the date only shows up as a month and year, or the exact date, use month and year in MM/YYYY format, or month day, year in MM/DD/YYYY format, if given. If the event occurs over a range include a hypen between the start and end of the event. Use PRESENT if range goes until current date. Events should include clinically significant new symptoms, cancer growth as evidenced by imaging or tests, start of treatments, or significant changes in the patients' health.
+    3. Each entry should be in a seperate line.
+
+    Here are several example summary outputs:
+
+    Example Timeline 1:
+    [DATE: 25915]: Patient initially presents with rising PSA. (2.3 in 2014, 5.45 in April 2015, 7.8 [10% free] July 2015). DRE: small symmetric gland, no nodules. MRI revealed 41 CC Gland. No focal abnormalities (PIRADS 2)
+    [DATE: 26005]: Prostate biopsy revealed bilateral high grade PIN
+    [DATE: 26185]: PSA 20.2, Free PSA 7.6%, with PHI 96. Unchanged MRI.
+    07/2016: Transperineal saturated biopsy revealed GG4 4 cores, GG3 1 core
+    [DATE: 26245]: Tc-99cm Bone Scan and CT negative
+    [DATE: 26305]: PSMA PET negative
+    [DATE: 26305]: RALP with PLND, showed pT3bN0M0 GG3 with SV invasion
+    [DATE: 28130]: PSA slowly rising in last year, currently at 0.13 ng/ml
+    [DATE: 28130]: Restaging CT and Bone Scan Negative, IPSS 2. SHIM 19
+
+    Example Timeline 2:
+    [DATE: 23725]: Craniotomy and subtotal resection of lesion from left temporal lobe
+    [DATE: 23747]-[DATE: 23764]: Radiation and concurrent temozolomide
+    [DATE: 23790]-[DATE: 23933]: Adjuvant temozolomide (6 cycles completed)
+    [DATE: 23873]: Gamma Knife radiation therapy  (16Gy at 50% at posterior left temporal area and 16Gy at 50% at medial anterior left temporal area)
+    [DATE: 23948]: Pembrolizumab
+    [DATE: 23959]: Secondary craniotomy and resection of recurrent lesion from anteromedial left temporal lobe
+    [DATE: 23970]-PRESENT: Pembrolizumab 
+    [DATE: 24040]-PRESENT: Avastin
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board timeline.
+
+    CLINICAL NOTE HISTORY: 
+
+OptionsGenerator:
+  system_instructions: |
+    You are a medical oncologist who is tasked to prepare patient summaries for presentation at a tumor board panel of experts.
+  user_chat_prompt: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, create a list of possible next options. The list should include possible treatments like chemotherapy, radiation, or enrollment in clinical trials; as well, additional pertinent tests should be included if relevant as a next step.
+
+    The list of next options MUST:
+    1. Include the specific medication name if a systemic therapy; or include the relevant anatomic location if radiation oncology or surgery; include the study ID and medication name if a clinical trial. Aftewards, follow the entry with a hypen and a short description of the option.
+    2. Provide relevant medical publications links in parenthesis at the end of the entry. If more than one link is relevant, include in the same parenthesis and concatenate with a semicolon seperator (link1;link2).
+    3. Each entry should be in a seperate line.
+
+    This is an example list of next options:
+    Pemetrexed, Carboplatin, Bevacizumab - Targets MTAP loss. A study in patients with NSCLC with brain metastases reported improved outcomes in those with loss or low expression of MTAP treated with chemotherapy and bevacizumab as compared with patients with high expression of MT AP
+    Osimertinib, Everolimus - Targets the multiple EGFR alterations
+    Neratinib - Neratinib was the favored option due to its ability to target patient's multiple alterations in ErbB family kinases EGFR and ERBB4. The ErbB family of protein kinases can form heterodimers that promote disease progression and Neratinib is a pan-ErbB inhibitor. Of the pan-ErbB targeting drugs including afatinib, Neratinib is easier to get approval for off-label use and has evidence of CNS penetration. Further, Neratinib can be given as a single agent which would be preferred due to the immunosuppressed state of the patient and the patient's older age. (https://pubmed.ncbi.nlm.nih.gov/27405796/)
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board list of next options.
+
+    CLINICAL NOTE HISTORY: 
+
+
+SupportingDataGenerator:
+  system_instructions: |
+    You are a medical oncologist who is tasked to prepare patient summaries for presentation at a tumor board panel of experts.
+  user_chat_prompt: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, create a list of supporting data (e.g. files) that should be presented in conjunction with a case summary in a slide presentation. Examples of these include MRI or CT images, pathology images, or structured data, such as biomarkers, to be presented as a table.
+
+    The total content of this list of supporting data should be concise and represent the latest clinical materials relevant to the patient's current condition and treatment options. The referenced raw materials should be those that are best represented as a table or image if available. Each referenced raw material is meant to be presented in less than two minutes each by the relevant expert (e.g. radiologist for an imaging study or a pathologist for pathology); the referred raw materials review should be helpful in the discussion and decision-making phase of the tumor board.
+
+    The list of supporting data MUST include in each entry:
+    1. The date of the data in MM/YYYY or MM/DD/YYYY format as available.
+    2. A description of the supporting data and its significance should follow the date after a colon.
+    3. Include the data type from this set of categories: {biomarkers, imaging, labs}. Include this in parenthesis at the end of each entry.
+    4. Each entry should be in a seperate line.
+    5. Each entry's information should be trace-able to the {CLINICAL NOTE HISTORY}.
+    6. List entries in the order of first occuring to the latest.
+
+    This is NOT meant to be a comprehensive list of all source documents.
+    It is not pertinent to include every raw materials in the timeline of the patient's history. ONLY the most relevant for the latest time point.
+    For imaging, only include the most relevant latest 1 or 2 studies. Do NOT include documentation of symptoms, legal documents, or clinical documents.
+
+    This is an example list of supporting data:
+    08/10: Mutations: H3K27M, TP53 | Deletions: LATS2, CDK8 (biomarkers)
+    07/29/2020: MRI Brain 4.5 cm lesion (imaging)
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board list of supporting data.
+
+    CLINICAL NOTE HISTORY: 
+  user_chat_prompt_deid: |
+    Reviewing a cancer patient's {CLINICAL NOTE HISTORY}, create a list of supporting data (e.g. files) that should be presented in conjunction with a case summary in a slide presentation. Examples of these include MRI or CT images, pathology images, or structured data, such as biomarkers, to be presented as a table.
+
+    The total content of this list of supporting data should be concise and represent the latest clinical materials relevant to the patient's current condition and treatment options. The referenced raw materials should be those that are best represented as a table or image if available. Each referenced raw material is meant to be presented in less than two minutes each by the relevant expert (e.g. radiologist for an imaging study or a pathologist for pathology); the referred raw materials review should be helpful in the discussion and decision-making phase of the tumor board.
+
+    The list of supporting data MUST include in each entry:
+    1. If the date shows up as a de-identified version, e.g. ([DATE: 29788]), please refer to the date in this format. The number represents days from the patient's date of birth, e.g. ([DATE: {DAYS_FROM_BIRTH}]). However, if the date only shows up as a month and year, or the exact date, use MM/YYYY or MM/DD/YYYY format as available.
+    2. A description of the supporting data and its significance should follow the date after a colon.
+    3. Include the data type from this set of categories: {biomarkers, imaging, labs}. Include this in parenthesis at the end of each entry.
+    4. Each entry should be in a seperate line.
+    5. Each entry's information should be trace-able to the {CLINICAL NOTE HISTORY}.
+    6. List entries in the order of first occuring to the latest.
+
+    This is NOT meant to be a comprehensive list of all source documents.
+    It is not pertinent to include every raw materials in the timeline of the patient's history. ONLY the most relevant for the latest time point.
+    For imaging, only include the most relevant latest 1 or 2 studies. Do NOT include documentation of symptoms, legal documents, or clinical documents.
+
+    This is an example list of supporting data:
+    08/10: Mutations: H3K27M, TP53 | Deletions: LATS2, CDK8 (biomarkers)
+    [DATE: 23988]: MRI Brain 4.5 cm lesion (imaging)
+
+    Now, it is your turn, use the following {CLINICAL NOTE HISTORY} and create a tumor board list of supporting data.
+
+    CLINICAL NOTE HISTORY:

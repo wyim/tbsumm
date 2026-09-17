@@ -1,0 +1,466 @@
+LLMAsJudgeGeneric:
+  system_instructions: |
+    You are a helpful medical assistant.
+  user_chat_prompt: |
+    Given a candidate text {CANDIDATE TEXT} and a reference text {REFERENCE TEXT}, rate the {CANDIDATE} text on a scale of 1-5 (1 is lowest, 5 is best) using the definitions below. The judgement should be based on the content of the {REFERENCE TEXT} as the ground truth.
+    
+    Below are some guidelines for the {RATING} labels (choose the best option):
+    - rating_1: {CANDIDATE TEXT} and {REFERENCE TEXT} provide content with overlapping topics but with conflicting information; OR provide content with completely dissimilar topics; OR a mixture of conflicting information for same content topics and dissimilar topics
+    - rating_2: {CANDIDATE TEXT} and {REFERENCE TEXT} provide content with overlapping topics with some conflicting information, but with other content overlap
+    - rating_3: {CANDIDATE TEXT} and {REFERENCE TEXT} provide overlapping content and significant (but not conflicting) content differences
+    - rating_4: {CANDIDATE TEXT} and {REFERENCE TEXT} provide the same content but with related insignificant additional information from either text
+    - rating_5: {CANDIDATE TEXT} and {REFERENCE TEXT} provide the exact same content with minor language variations
+
+    Here are some simplified examples with a {CANDIDATE TEXT}, {REFERENCE TEXT} => {RATING}:
+    "today's blood pressure is 136/63", "today's blood pressure is 180/83" => rating_1
+    "today's blood pressure is 136/63", "blood sugars normal" => rating_1
+    "today's blood pressure is 136/63, weight is low", "today's blood pressure is 180/83, blood sugars normal" => rating_1
+    "today's blood pressure is 136/63, weight is low", "today's blood pressure is 136/83, blood sugars normal" => rating_2
+    "today's blood pressure is 136/63, weight is low", "today's blood pressure is 136/63, blood sugars normal" => rating_3
+    "patient reports nausea and difficulty swallowing", "pt has been losing due to nausea and swallowing problems" => rating_3
+    "patient reports nausea and difficulty swallowing", "pt has difficulty with eating due to nausea and swallowing problems" => rating_4
+    "patient reports nausea and difficulty swallowing", "pt symptoms include: nausea, swallowing difficulties" => rating_5
+  user_chat_candidate: |
+    CANDIDATE TEXT:
+  user_chat_reference: |
+    REFERENCE TEXT:
+  user_chat_output: |
+    RATING:
+
+LLMAsJudge4Axes:
+  system_instructions: |
+    You are a helpful medical assistant.
+  user_chat_prompt: |
+    Given a candidate text {CANDIDATE TEXT} and a reference text {REFERENCE TEXT}, rate the {CANDIDATE} text on a scale of 1-5 (1 is lowest, 5 is best) for the categories described below. The judgement should be based on the content of the {REFERENCE TEXT} as the ground truth. The final {OUTPUT} should be in the form of a json object with the following keys and categories defined below.
+    
+    Categories:
+    1. completeness: (Completeness) Using the {REFERENCE TEXT} as the ground truth, is all necessary information required for the case summary present in the {CANDIDATE TEXT}? (1 - contains no relevant/helpful information, 3 - Some critical elements present but some missing, 5 - All necessary information present)
+    2. factual_accuracy: (Factual accuracy) Using the {REFERENCE TEXT} as the ground truth, is all content in the {CANDIDATE TEXT} medically accurate (regardless of if it is complete or relevant/helpful)? (1 - Incorrect or harmful information, 3 - Some accurate information and some inaccuracies (but may not cause harm), 5 - All information is accurate )
+    3. relevance: (Relevance/Helpfulness) Using the {REFERENCE TEXT} as the ground truth, is information presented in the {CANDIDATE TEXT} relevant? Is information helpful to your task (i.e., how helpful would it be to have this summary generated for you vs. having to create it yourself for a tumor board)? (1 - No information is relevant/helpful, 3 - There is both relevant/helpful and irrelevant/unhelpful information, 5 - All information is relevant/helpful)
+    4. overall: (Overall) Using the {REFERENCE TEXT} as the ground truth, how would you rate the overall answer from the {CANDIDATE TEXT}? (1 - Complete disagree, 2 - Would make major revisions, 3 - Agree but would make some critical revisions, 4 - Agree but would make some trivial revisions, 5 - Completely agree)
+
+    Example OUTPUT:
+    { "completeness": 4,
+      "factual_accuracy": 3,
+      "relevance": 2,
+      "overall": 4
+    }
+
+    These categories may be related but not directly computable from each other. For example, your {CANDIDATE TEXT} can be complete but not factually accurate. On the other hand, the {CANDIDATE TEXT} can have complete information but be factually  inaccurate. Similary, the {CANDIDATE TEXT} can be factually accurate and complete but also include a lot of irrelevant and unhelpful information requiring a lot of effort to correct the text. The overall score should take all these items into account holistically, factoring need for physician to edit as well as potential harm in the incomplete/inaccurate information that can lead to erroneous medical judgements.
+
+    Here are some simplified examples with a {CANDIDATE TEXT}, {REFERENCE TEXT}, and{OUTPUT}:
+
+    Example 1 CANDIDATE TEXT:
+    Patient is a 68-year-old male diagnosed on 01.10.2025 with a glioblastoma in the right temporal lobe. Patient completed chemotherapy cycle for their multicentric lesion on 03.17.2020. Patient is currently receiving treatment with  gemcitabine and wishes to determine alternative treatment options towards treating their multifocal disease.
+
+    Example 1 REFERENCE TEXT:
+    Patient is a 65-year-old male diagnosed on 01.09.2020 with an MGMT methylated and IDH wildtype glioblastoma in the left temporal lobe. Patient completed their surgery and subtotal resection of their multicentric lesion on 01.09.2020 and their chemoradiation on 03.17.2020. Patient is currently receiving treatment with pembrolizumab and bevacizumab and wishes to determine alternative treatment options towards treating their multifocal disease.
+
+    Example 1 OUTPUT:
+    { "completeness": 3,
+      "factual_accuracy": 1,
+      "relevance": 1,
+      "overall": 1
+    }
+    
+    Patient information, test and treatments in the {CANDIDATE TEXT} are all factually inaccurate as compared to the {REFERENCE TEXT}; including incorrect dates, incorrect anatomic laterality, and incorrect treatments. However, completeness is 3 as the text itself does describe some history and provides the curent status and point of decision-making, though misses critical biomarker information. This led to overall lower scores for factual_accuracy, relevance, and overall.
+
+
+    Example 2 CANDIDATE TEXT:
+    65M diagnosed with 01.2020 with MGMT methylated, IDH wildtype glioblastoma in  left temporal lobe. Initially treated with surgery and resection on 01.09.2020, chemoradiation on 03.17.2020. Patient currently on pembrolizumab and bevacizumab.
+
+    Example 2 REFERENCE TEXT:
+    Patient is a 65-year-old male diagnosed on 01.09.2020 with an MGMT methylated and IDH wildtype glioblastoma in the left temporal lobe. Patient completed their surgery and subtotal resection of their multicentric lesion on 01.09.2020 and their chemoradiation on 03.17.2020. Patient is currently receiving treatment with pembrolizumab and bevacizumab and wishes to determine alternative treatment options towards treating their multifocal disease.
+
+    Example 2 OUTPUT:
+    { "completeness": 4,
+      "factual_accuracy": 5,
+      "relevance": 5,
+      "overall": 4
+    }
+    
+    Patient information, test and treatments are factually accurate but some minor information in the reference text is not included in the {CANDIDATE TEXT}. For example the exact dates are not given in the {CANDIDATE TEXT} and current status is not included. This led to overall high scores for factual_accuracy, relevance, and overall.
+
+
+    Example 3 CANDIDATE TEXT:
+    Patient is a 65-year-old male in 11.2019 had a series of migraines. After an MRI and further testing, he was diagnosed on 01.09.2020 with an MGMT methylated and IDH wildtype glioblastoma in the left temporal lobe. Patient completed their surgery and subtotal resection of their multicentric lesion on 01.09.2020 and their chemoradiation on 03.17.2020. Patient is currently receiving treatment with pembrolizumab and bevacizumab. He and his family have been finding the treatment very challenging. He wishes to determine alternative treatment options towards treating their multifocal disease.
+
+    Example 3 REFERENCE TEXT:
+    65M diagnosed with 01.2020 with MGMT methylated, IDH wildtype glioblastoma in  left temporal lobe. Initially treated with surgery and resection on 01.09.2020, chemoradiation on 03.17.2020. Patient currently on pembrolizumab and bevacizumab.
+
+    Example 3 OUTPUT:
+    { "completeness": 5,
+      "factual_accuracy": 4,
+      "relevance": 4,
+      "overall": 4
+    }
+    
+    Patient information, test and treatments in the {CANDIDATE TEXT} are mostly factually accurate as compared to the {REFERENCE TEXT}. However there is information in the {CANDIDATE TEXT} that may be true (they are consistent information) but cannot be verified by the {REFERENCE TEXT}. Completeness score is high, as it includes all relevant history and also the current status.
+
+
+    Example 4 CANDIDATE TEXT:
+    Patient is a 65-year-old male diagnosed on 01.2020 with an MGMT methylated and IDH wildtype glioblastoma. Patient completed surgery and chemoradiation on 2020, having a range of minor adverse affects including nauseau, vomitting, and constipation. Patient is undergoing chemotherapy. He is otherwise spending a lot of time with arts and crafts and talking to friends in church.
+
+    Example 4 REFERENCE TEXT:
+    65M diagnosed with 01.2020 with MGMT methylated, IDH wildtype glioblastoma in  left temporal lobe. Initially treated with surgery and resection on 01.09.2020, chemoradiation on 03.17.2020. Patient currently on pembrolizumab and bevacizumab. He has support from his arts-and-crafts hobby and his church.
+
+    Example 4 OUTPUT:
+    { "completeness": 3,
+      "factual_accuracy": 4,
+      "relevance": 3,
+      "overall": 2
+    }
+    
+    Patient information, test and treatments in the {CANDIDATE TEXT} are mostly factually accurate as compared to the {REFERENCE TEXT}. However there is both missing information such as the details of dates/surgeries/treatments; as well there is unncessary detail related to some hobbies and minor adverse events that can be excluded, leading to a lower relevance score. Taking into account the scores from different axes, the overall score is also lower.
+
+
+    Example 5 CANDIDATE TEXT:
+    Patient is a 40-year-old female diagnosed on 01.2019 with glioblastoma. Patient intially underwent chemoradiation on 01.2019. Patient currently on gemcitabine. She is interested in clinical trials, travel within the state is not a concern.
+
+    Example 5 REFERENCE TEXT:
+    65M diagnosed with 01.2020 with MGMT methylated, IDH wildtype glioblastoma in  left temporal lobe. Initially treated with surgery and resection on 01.09.2020, chemoradiation on 03.17.2020. Patient currently on pembrolizumab and bevacizumab. He has support from his arts-and-crafts hobby and his church.
+
+    Example 5 OUTPUT:
+    { "completeness": 1,
+      "factual_accuracy": 1,
+      "relevance": 1,
+      "overall": 1
+    }
+    
+    Based on the {REFERENCE TEXT}, the information from {CANDIDATE TEXT} seems to describe a completely different patient. Despite some overlap in the case, such as the glioblastoma diagnosis and chemoradiation and chemotherapy treatments, this case should be given the lowest score for all axes.
+
+    
+  user_chat_candidate: |
+    CANDIDATE TEXT:
+  user_chat_reference: |
+    REFERENCE TEXT:
+  user_chat_output: |
+    OUTPUT:
+
+TBFactExtractor:
+  system_instructions: |
+    You are a medical annotator with expertise in medical oncology. 
+  user_chat_prompt: |
+    Given a {SUMMARY TEXT}, your task will be decompose the text into information extraction {FACT EVENTS} with mentions and attributes based on the schema descrbed.
+    
+    The schema includes the following fact event type categories and its descriptions:
+    1. demographic - demographic information including age, gender, smoking status, etc.
+    2. family_history - anything related to family's condition
+    3. stage - cancer stages including clinical or pathological (stage I, II, etc)
+    4. diagnosis - clinical diagnoses (other relevant medical history can go here)
+    5. performance_status - performance statuses
+    6. symptom - clinical symptoms
+    7. treatment_systemic - systemic treatments for cancer such as chemotherapy or immunotherapy
+    8. treatment_surgery - surgical treatments for cancer
+    9. treatment_radiation - radiation treatments for cancer
+    10. treatment_other - other types of treatments
+    11. test_imaging - imaging tests such as MRI, CT, X-RAYS, PET scans, etc.
+    12. testresult_labs - results of clinical laboratory testing (e.g. BUN, WBC)
+    13. testresult_molecular - results of genetic/mutation testing (e.g. BRCA)
+    14. testresult_pathology - results of pathology testings
+    15. open_question - open questions
+    16. other - other events not suitable in earlier classifications
+
+    Each event will have exactly one mention, as well as zero or more attributes. A mention is the representative phrase of the event, often a noun phrase. Arguments include attributes such anatomic location, severity, time and temporal aspects, negations, or other descriptions and characteristics. Negation should include any indication of the event not taking place whether it is declination (e.g. "patient declines treatment"), hypothetical situations (e.g. "we will consider surgery pending on the results of the pathology"), or conditional indications (e.g. "we will proceed with surgery as planned if the patient labs normal").
+    
+    For example in the passage: "The itchiness starting on Monday intermittently". The event is of type "symptom", the mention is "itchiness", and "starting on Monday" and "intermittently" are attributes.
+
+    Here's another example: "Chest CT showed increased lesions" The event is of type "test_imaging", the mention is "CT", "Chest" and "increased lesions" are an attributes.
+
+    Here's another example: "He decided not to continue with chemotherapy." The event is of type "treatment_systemic", the mention is "chemotherapy", and "not to continue" are an attributes.
+
+    On the other hand, if the subject is not the patient, mark the event as a family_history event type. For example: "His father and brother also a history of cancer." The event is of type "family_history", the mention is "cancer", and "father" and "brother" are attributes.
+
+    When decomposing the text, you should follow the these formatting rules:
+    1. The {FACT EVENTS} content should follow the same chronological order as the {SUMMARY TEXT}
+    2. Each new {FACT EVENT} is represented by a json object, with the expected output as a list of json objects
+    3. Each {FACT EVENT} should be assigned a single type with a single mention
+    4. Each {FACT EVENT} type that exists in the {SUMMARY TEXT} should have its own {FACT EVENT}
+    5. Each {FACT EVENT} should be in a json object format with the keys: "text", "type", "mention", and "attributes". "text" is be a text string copied from the {SUMMARY TEXT} as the source of the {FACT EVENT}. Content from "text" should be a faithful copy from the {SUMMARY TEXT} though the text can be discontinous and re-arranged. Particularly if a subject is a determiner such as ("this", "it"), it is allowed to copy the subject text from a previous sentence. "type" should be a string, chosen among the 16 event type categories described above. "mention" will be the representative event mention. "attributes" will be the list of attributes formatted as a python list of strings.
+    6. The same {FACT EVENT} should only be represented once. If the same event is mentioned multiple times, only keep the first occuring one chronologically.
+
+    EXAMPLE 1 SUMMARY TEXT:
+    Mr. Roberts is a 71-year-old man with a history of hypertension and locally advanced pT3N1M0 prostate adenocarcinoma. He's a Gleason 3+4 prostate cancer. He was treated initially, with radical prostatectomy and pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis. He did not opt for adjuvant radiation at the time, despite being pT3b, and his PSA was undetectable postoperatively. In September, of 2021, his PSA was detectable at 0.31, so starting to rise. And he underwent 18F-DCFPyL PSMA PET to inform his decision-making. He is generally in an active and healthy condition.
+
+    EXAMPLE 1 FACT EVENTS:
+    [
+      { "text":"71-year-old man", "type":"demographics", "mention":"71-year-old man", "attributes":[] },
+      { "text":"hypertension", "type":"symptoms", "mention":"hypertension", "attributes":[] },
+      { "text":"pT3N1M0", "type":"stage", "mention":"pT3N1M0", "attributes":[] },
+      { "text":"prostate adenocarcinoma", "type":"diagnosis", "mention":"adenocarcinoma", "attributes":["prostate"] },
+      { "text":"Gleason 3+4", "type":"testresult_pathology", "mention":"Gleason 3+4", "attributes":[] },
+      { "text":"treated initially, with radical prostatectomy", "type":"treatment_surgery", "mention":"radical prostatectomy", "attributes":["initially"] },
+      { "text":"pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis", "type":"treatment_surgery", "mention":"dissection", "attributes":["pelvic lymph node", "March, of 2018", "after his initial diagnosis"] },
+      { "text":"did not opt for adjuvant radiation at the time", "type":"treatment_radiation", "mention":"adjuvant radiation", "attributes":["did not opt for", "at the time"] },
+      { "text":"PSA was undetectable postoperatively", "type":"testresult_labs", "mention":"PSA", "attributes":["undetectable","postoperatively"] },
+      { "text":"September, of 2021, his PSA was detectable at 0.31", "type":"testresult_labs", "mention":"PSA", "attributes":["September, of 2021","detectable","0.31","starting to rise"] },
+      { "text":"underwent 18F-DCFPyL PSMA PET", "type":"test_imaging", "mention":"PET", "attributes":["18F-DCFPyL PSMA"] },
+      { "text":"generally in an active and healthy condition", "type":"other", "mention":"active and healthy", "attributes":[] },
+    ]
+
+    EXAMPLE 2 SUMMARY TEXT:
+    Patient is a 65-year-old male diagnosed on 01.09.2020 with an MGMT methylated and IDH wildtype glioblastoma in the left temporal lobe. Patient completed their surgery and subtotal resection of their multicentric lesion on 01.09.2020 and their chemoradiation on 03.17.2020. While completing their third cycle of adjuvant temozolomide therapy, suspected disease progression was reported within the left temporal lobe and the patient received further gamma knife radiation therapy. Following continued disease progression being reported during follow up MRIs, the patient initiated neoadjuvant immunotherapy with pembrolizumab on 09.28.2020 and received a secondary craniotomy and resection of the recurrent lesion from anteromedial left temporal lobe on 10.08.2020. Patient is currently receiving treatment with pembrolizumab and bevacizumab and wishes to determine alternative treatment options towards treating their multifocal disease after their last MRI demonstrated signs of further disease progression. Patient wishes to learn whether surgical options can still be explored after receiving confirmation from the Ivy Brain Tumor Center in Phoenix, AZ that they could potentially participate in one of their Phase 0 clinical studies.
+
+    EXAMPLE 2 FACT EVENTS:
+    [
+      { "text":"65-year-old male", "type":"demographic", "mention":"65-year-old male", "attributes":[] },
+      { "text":"glioblastoma in the left temporal lobe diagnosed on 01.09.2020", "type":"", "mention":"glioblastoma", "attributes":["left temporal lobe","01.09.2020"] },
+      { "text":"MGMT methylated", "type":"testresult_molecular", "mention":"MGMT methylated", "attributes":[] },
+      { "text":"IDH wildtype", "type":"testresult_pathology", "mention":"IDH wildtype", "attributes":[] },
+      { "text":"surgery and subtotal resection of their multicentric lesion on 01.09.2020", "type":"treatment_surgery", "mention":"surgery and subtotal resection", "attributes":["multicentric lesion","01.09.2020"] },
+      { "text":"chemoradiation on 03.17.2020", "type":"treatment_systemic", "mention":"chemoradiation", "attributes":["03.17.2020"] },
+      { "text":"third cycle of adjuvant temozolomide therapy", "type":"treatment_systemic", "mention":"adjuvant temozolomide therapy", "attributes":["third cycle"] },
+      { "text":"disease progression was reported within the left temporal lobe", "type":"diagnosis", "mention":"disease progression", "attributes":["left temporal lobe"] },
+      { "text":"gamma knife radiation therapy", "type":"treatment_radiation", "mention":"radiation therapy", "attributes":["gamma knife"] },
+      { "text":"Following continued disease progression", "type":"diagnosis", "mention":"disease progression", "attributes":["continued"] },
+      { "text":"follow up MRIs", "type":"test_imaging", "mention":"MRIs", "attributes":[] },
+      { "text":"neoadjuvant immunotherapy with pembrolizumab on 09.28.2020", "type":"treatment_systemic", "mention":"neoadjuvant immunotherapy with pembrolizumab", "attributes":["09.28.2020"] },
+      { "text":"secondary craniotomy and resection of the recurrent lesion from anteromedial left temporal lobe on 10.08.2020", "type":"treatment_surgery", "mention":"craniotomy and resection", "attributes":["secondary","recurrent lesion","anteromedial left temporal lobe","10.08"] },
+      { "text":"Patient is currently receiving treatment with pembrolizumab and bevacizumab", "type":"treatment_systemic", "mention":"pembrolizumab and bevacizumab", "attributes":["currently"] },
+      { "text":"Patient wishes to determine alternative treatment options towards treating their multifocal disease", "type":"other", "mention":"alternative treatment options", "attributes":[] },
+      { "text":"last MRI", "type":"test_imaging", "mention":"MRI", "attributes":[] },
+      { "text":"further disease progression", "type":"diagnosis", "mention":"disease progression", "attributes":[] },
+      { "text":"Patient wishes to learn whether surgical options", "type":"other", "mention":"surgical options", "attributes":[] },
+      { "text":"receiving confirmation potentially participate in one of their Phase 0 clinical studies", "type":"treatment_other", "mention":"Phase 0 clinical studies", "attributes":["potentially participate"] }
+    ]
+
+    Now it is your turn.
+    
+    SUMMARY TEXT:
+
+
+TBFactContextEntailmentClassifier:
+  system_instructions: |
+    You are a medical annotator with expertise in medical oncology.
+  user_chat_prompt: |
+    Given (1) a piece of text (SOURCE TEXT) and a list fact events (FACT EVENTS), and (2) a context text (CONTEXT TEXT), your task is to classify the "mention" and each of "attributes" of the {FACT EVENT} for entailment by the context text ({CONTEXT TEXT}).
+
+    The entailment classifications are between a {HYPOTHESIS} text and a {CONTEXT TEXT} is defined below:
+    1. ENTAILED_BY - {HYPOTHESIS} text is entailed by {CONTEXT TEXT}, if {HYPOTHESIS} can be logically inferred from {CONTEXT TEXT}.
+    2. CONTRADICTED_BY - {HYPOTHESIS} text is contradicted by {CONTEXT TEXT}, if {CONTEXT TEXT} information contradicts information in {HYPOTHESIS}.
+    3. RELEVANT_BUT_NOT_SUPPORTED - {HYPOTHESIS} text is relevant but not supported by {CONTEXT TEXT}, if {HYPOTHESIS} and {CONTEXT TEXT} are related text but {HYPOTHESIS} cannot be inferred from {CONTEXT TEXT}.
+    4. OTHER_NOT_SUPPORTED - {HYPOTHESIS} text is otherwise not supported by {CONTEXT TEXT}, if {HYPOTHESIS} and can not be logically inferred from {CONTEXT TEXT} and does not fall in the previous categories.
+
+    As an example, consider the followint text examples:
+    text1: "BP 138/82"
+    text2: "BP 129/60"
+    text3: "blood pressure was high"
+    text4: "history of hypertension"
+    text5: "high blood sugars"
+
+    Consider the following are examples of the {HYPOTHESIS}, {CONTEXT TEXT} => classifications; reason:
+    "BP 138/82", "BP 129/60" => CONTRADICTED_BY; BP cannot be 138/82 and 129/60 at the same time
+    "BP 129/60", "BP 138/82" => CONTRADICTED_BY; BP cannot be 129/60 and 138/82 at the same time
+    "BP 138/82", "blood pressure was high" => RELEVANT_BUT_NOT_SUPPORTED; given "high blood pressure" we cannot infer the actual blood pressure measurement
+    "blood pressure was high", "BP 138/82" => ENTAILED_BY; given a blood pressure of 138/82 based on medical defintions, blood pressure is considered high
+    "BP 138/82", "history of hypertension" => RELEVANT_BUT_NOT_SUPPORTED; given information that there is a history of hypertension, it is not possible to infer a single specific blood pressure reading of 138/82. however a history of hypertension suggests that the same individual will have high blood pressure readings such as 138/82.
+    "history of hypertension", "BP 138/82" => RELEVANT_BUT_NOT_SUPPORTED; given a single blood pressure reading that is considered medically high, it is not possible to infer a hystery of hypertension. however many such high blood pressure readings for the same individuals defines a history of hypertenstion.
+    "BP 138/82", "high blood sugars" => OTHER_NOT_SUPPORTED; given blood sugar readings, it is not possible to infer any information related to blood pressure
+    "high blood sugars", "BP 138/82" => OTHER_NOT_SUPPORTED; given blood pressure readings, it is not possible to infer any information related to blood sugars
+
+    Instructions:
+    1. You will be given a list of {FACT EVENT} as a list of json objects. "text" comes from {SOURCE TEXT} as an extractive summary. The "mention" is the representative phrase of the {FACT EVENT} and "attributes" are a list of characteristics describing the "mention", including anatomic location, severity, time and temporal aspects, negations, or other descriptions and characteristics.
+    2. Reading the {CONTEXT TEXT}, determine the entailment classification of the "mention" and each of the "attributes". Return the classifications in a new object with the mention classification in the "mention_classification" key, the attributes classifications in the "attribute_classifications" key. The number of "attribute_classifications" should match the number of items in the original "attributes".
+
+    Specifically, classify the "mention" as {HYPOTHESIS} text against the {CONTEXT TEXT} for entailment. Save this classification with the "mention_classification" key of a new json object. Next for each "attribute" in the list of "attributes", use each item as as the {HYPOTHESIS} text and the {CONTEXT TEXT} as the context text. Save the results in a list of string with the "attribute_classifications" in the same json object.
+
+    3. Make sure to align the same event from the {SOURCE TEXT}, {FACT EVENT}, and {CONTEXT TEXT} by comparing the events chronically. Some events within or between the {SOURCE TEXT} or {CONTEXT TEXT} may have the same name (e.g. multiple MRI or pathology), but are not related; on the other hand, there may be incorrect attributes describing the same event that should be aligned.
+
+    For example: 
+
+    4. For each {FACT EVENT CLASSIFICATION}, there should be exactly one mention, mention_classification, mention_classification_reason.
+    5. For each {FACT EVENT CLASSIFICATION}, the number of attributes should match the number of attribute_classifications, and the number of attribute_classifications_reasons.
+
+    Here is an example:
+
+    EXAMPLE 1 SOURCE TEXT:
+    Mr. Roberts is a 71-year-old man with a history of hypertension and locally advanced pT3N1M0 prostate adenocarcinoma. He's a Gleason 3+4 prostate cancer. He was treated initially, with radical prostatectomy and pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis. He did not opt for adjuvant radiation at the time, despite being pT3b, and his PSA was undetectable postoperatively. In September, of 2021, his PSA was detectable at 0.31, so starting to rise. And he underwent 18F-DCFPyL PSMA PET to inform his decision-making. He is generally in an active and healthy condition.
+
+    EXAMPLE 1 FACT EVENTS:
+    [
+      { "text":"71-year-old man", "type":"demographics", "mention":"71-year-old man", "attributes":[] },
+      { "text":"hypertension", "type":"symptoms", "mention":"hypertension", "attributes":[] },
+      { "text":"pT3N1M0", "type":"stage", "mention":"pT3N1M0", "attributes":[] },
+      { "text":"prostate adenocarcinoma", "type":"diagnosis", "mention":"adenocarcinoma", "attributes":["prostate"] },
+      { "text":"Gleason 3+4", "type":"testresult_pathology", "mention":"Gleason 3+4", "attributes":[] },
+      { "text":"treated initially, with radical prostatectomy", "type":"treatment_surgery", "mention":"radical prostatectomy", "attributes":["initially"] },
+      { "text":"pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis", "type":"", "mention":"dissection", "attributes":["pelvic lymph node", "March, of 2018", "after his initial diagnosis"] },
+      { "text":"did not opt for adjuvant radiation at the time", "type":"treatment_radiation", "mention":"adjuvant radiation", "attributes":["did not opt for", "at the time"] },
+      { "text":"PSA was undetectable postoperatively", "type":"testresult_labs", "mention":"PSA", "attributes":["undetectable","postoperatively"] },
+      { "text":"September, of 2021, his PSA was detectable at 0.31", "type":"testresult_labs", "mention":"PSA", "attributes":["September, of 2021","detectable","0.31","starting to rise"] },
+      { "text":"underwent 18F-DCFPyL PSMA PET", "type":"test_imaging", "mention":"PET", "attributes":["18F-DCFPyL PSMA"] },
+      { "text":"generally in an active and healthy condition", "type":"other", "mention":"active and healthy", "attributes":[] },
+    ]
+
+    EXAMPLE 1 CONTEXT TEXT:
+    71M male with locally advanced pT3N1M0 prostate adenocarcinoma, Gleason 3+4. Initially underwent radical prostatectomy and pelvic lymph node dissection, 03/2018. PSA was undetectable postoperatively. In September 2022, his PSA was detectable at 0.31. 18F-DCFPyL PSMA PET performed with results pending. He is active and healthy, running 6 miles/day, 5x/week. He mentions he prefers proactive aggressive treatment.
+
+    EXAMPLE 1 FACT EVENT CLASSIFICATIONS:
+    [
+      { "mention":"71-year-old man", "attributes":[],
+        "mention_classification":"ENTAILED_BY", "mention_classification_reason": "given 71M, we can infer 71-year-old-man", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+        
+        { "mention":"hypertension", "attributes":[],
+          "mention_classification":"OTHER_NOT_SUPPORTED", "mention_classification_reason": "hypertension is not mentioned", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+          
+        { "mention":"pT3N1M0", "attributes":[],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "pT3N1M0 mentioned exactly in context text", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+          
+        { "mention":"adenocarcinoma", "attributes":["prostate"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "adenocarcinoma mentioned exactly in context text", "attribute_classifications":["ENTAILED_BY"], "attribute_classifications_reasons": ["prostate adenocarcinoma mentioned exactly in context text"] },
+          
+        { "mention":"Gleason 3+4", "attributes":[],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "Gleason 3+4 mentioned exactly in context text", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+        
+        { "mention":"radical prostatectomy", "attributes":["initially"], "mention_classification":"ENTAILED_BY",
+          "mention_classification_reason": "radical prostatectomy mentioned exactly in context text",
+          "attribute_classifications":["ENTAILED_BY"], "attribute_classifications_reasons":["radical prostatectomy mentioned exactly in context text"] },
+          
+        { "mention":"dissection", "attributes":["pelvic lymph node", "March, of 2018", "after his initial diagnosis"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "dissection mentioned exactly in context text",  "attribute_classifications":["ENTAILED_BY", "ENTAILED_BY", "OTHER_NOT_SUPPORTED"], "attribute_classifications_reasons":["radical prostatectomy mentioned exactly in context text"] },
+        
+        { "mention":"adjuvant radiation", "attributes":["did not opt for", "at the time"],
+          "mention_classification":"OTHER_NOT_SUPPORTED",  "mention_classification_reason": "adjuvant radiation after the pelvic lymph node dissection was not mentioned in the context text",
+          "attribute_classifications":["OTHER_NOT_SUPPORTED", "OTHER_NOT_SUPPORTED"], "attribute_classifications_reasons":["adjuvant radiation after the pelvic lymph node dissection was not mentioned in the context text so it is not possible to know whether the patient opted for it", "adjuvant radiation after the pelvic lymph node dissection was not mentioned in the context text, so it is not possible to know the time related to the proposed radiation"] },
+        
+        { "mention":"PSA", "attributes":["undetectable","postoperatively"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "PSA after surgery undetectable was mentioned exactly",
+          "attribute_classifications":["ENTAILED_BY","ENTAILED_BY"], "attribute_classifications_reasons":["PSA after surgery undetectable was mentioned exactly","PSA after surgery undetectable was mentioned exactly"] },
+        
+        { "mention":"PSA", "attributes":["September, of 2021","detectable","0.31","starting to rise"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "This is entailed because there was indeed another PSA measurement after the other postoperative PSA",
+          "attribute_classifications":["CONTRADICTED_BY","ENTAILED_BY","OTHER_NOT_SUPPORTED"], "attribute_classifications_reasons":["The PSA measurement after the initial postoperative PSA was in September 2020 according to the context text", "There was no mention of starting to rise PSA"] },
+        
+        { "mention":"PET", "attributes":["18F-DCFPyL PSMA"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "PET was mentioned exactly in the context text",
+          "attribute_classifications":["ENTAILED_BY"], "attribute_classifications_reasons":["18F-DCFPyL PSMA PET was mentioned exactly in the context text"] },
+        
+        { "mention":"active and healthy", "attributes":[],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "patient being active and healthy was mentioned exactly in the context text",
+          "attribute_classifications":[], "attribute_classifications_reasons":[] }
+    ]
+  user_chat_sourcetextprelude: |
+    SOURCE TEXT:
+  user_chat_factlistprelude: |
+    FACT EVENTS:
+  user_chat_contextprelude: |
+    CONTEXT TEXT:
+  user_chat_outputprelude: |
+    FACT EVENT CLASSIFICATIONS:
+
+
+TBFactPatientHistoryEntailmentClassifier:
+  system_instructions: |
+    You are a medical annotator with expertise in medical oncology.
+  user_chat_prompt: |
+    Given (1) a piece of text (SOURCE TEXT) and a list fact events (FACT EVENTS), and (2) aa cancer patient's {CLINICAL NOTE HISTORY}, your task is to classify the "mention" and each of "attributes" of the {FACT EVENT} for entailment by the {CLINICAL NOTE HISTORY}.
+
+    The entailment classifications are between a {HYPOTHESIS} text and a {CONTEXT TEXT} is defined below:
+    1. ENTAILED_BY - {HYPOTHESIS} text is entailed by {CONTEXT TEXT}, if {HYPOTHESIS} can be logically inferred from {CONTEXT TEXT}.
+    2. CONTRADICTED_BY - {HYPOTHESIS} text is contradicted by {CONTEXT TEXT}, if {CONTEXT TEXT} information contradicts information in {HYPOTHESIS}.
+    3. RELEVANT_BUT_NOT_SUPPORTED - {HYPOTHESIS} text is relevant but not supported by {CONTEXT TEXT}, if {HYPOTHESIS} and {CONTEXT TEXT} are related text but {HYPOTHESIS} cannot be inferred from {CONTEXT TEXT}.
+    4. OTHER_NOT_SUPPORTED - {HYPOTHESIS} text is otherwise not supported by {CONTEXT TEXT}, if {HYPOTHESIS} and can not be logically inferred from {CONTEXT TEXT} and does not fall in the previous categories.
+
+    As an example, consider the followint text examples:
+    text1: "BP 138/82"
+    text2: "BP 129/60"
+    text3: "blood pressure was high"
+    text4: "history of hypertension"
+    text5: "high blood sugars"
+
+    Consider the following are examples of the {HYPOTHESIS}, {CONTEXT TEXT} => classifications; reason:
+    "BP 138/82", "BP 129/60" => CONTRADICTED_BY; BP cannot be 138/82 and 129/60 at the same time
+    "BP 129/60", "BP 138/82" => CONTRADICTED_BY; BP cannot be 129/60 and 138/82 at the same time
+    "BP 138/82", "blood pressure was high" => RELEVANT_BUT_NOT_SUPPORTED; given "high blood pressure" we cannot infer the actual blood pressure measurement
+    "blood pressure was high", "BP 138/82" => ENTAILED_BY; given a blood pressure of 138/82 based on medical defintions, blood pressure is considered high
+    "BP 138/82", "history of hypertension" => RELEVANT_BUT_NOT_SUPPORTED; given information that there is a history of hypertension, it is not possible to infer a single specific blood pressure reading of 138/82. however a history of hypertension suggests that the same individual will have high blood pressure readings such as 138/82.
+    "history of hypertension", "BP 138/82" => RELEVANT_BUT_NOT_SUPPORTED; given a single blood pressure reading that is considered medically high, it is not possible to infer a hystery of hypertension. however many such high blood pressure readings for the same individuals defines a history of hypertenstion.
+    "BP 138/82", "high blood sugars" => OTHER_NOT_SUPPORTED; given blood sugar readings, it is not possible to infer any information related to blood pressure
+    "high blood sugars", "BP 138/82" => OTHER_NOT_SUPPORTED; given blood pressure readings, it is not possible to infer any information related to blood sugars
+
+    Instructions:
+    1. You will be given a list of {FACT EVENT} as a list of json objects. "text" comes from {SOURCE TEXT} as an extractive summary. The "mention" is the representative phrase of the {FACT EVENT} and "attributes" are a list of characteristics describing the "mention", including anatomic location, severity, time and temporal aspects, negations, or other descriptions and characteristics.
+    2. Reading the {CLINICAL NOTE HISTORY} as the {CONTEXT TEXT}, determine the entailment classification of the "mention" and each of the "attributes". Return the classifications in a new object with the mention classification in the "mention_classification" key, the attributes classifications in the "attribute_classifications" key. The number of "attribute_classifications" should match the number of items in the original "attributes".
+
+    Specifically, classify the "mention" as {HYPOTHESIS} text against the {CLINICAL NOTE HISTORY} for entailment. Save this classification with the "mention_classification" key of a new json object. Next for each "attribute" in the list of "attributes", use each item as as the {HYPOTHESIS} text and the content from {CLINICAL NOTE HISTORY} as the {CONTEXT TEXT}. Save the results in a list of string with the "attribute_classifications" in the same json object.
+
+    3. Make sure to align the same event from the {SOURCE TEXT}, {FACT EVENT}, and {CONTEXT TEXT} by comparing the events chronically. Some events within or between the {SOURCE TEXT} or {CONTEXT TEXT} may have the same name (e.g. multiple MRI or pathology), but are not related; on the other hand, there may be incorrect attributes describing the same event that should be aligned.
+
+    For example: 
+
+    4. For each {FACT EVENT CLASSIFICATION}, there should be exactly one mention, mention_classification, mention_classification_reason.
+    5. For each {FACT EVENT CLASSIFICATION}, the number of attributes should match the number of attribute_classifications, and the number of attribute_classifications_reasons.
+
+    Here is an example:
+
+    EXAMPLE 1 SOURCE TEXT:
+    Mr. Roberts is a 71-year-old man with a history of hypertension and locally advanced pT3N1M0 prostate adenocarcinoma. He's a Gleason 3+4 prostate cancer. He was treated initially, with radical prostatectomy and pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis. He did not opt for adjuvant radiation at the time, despite being pT3b, and his PSA was undetectable postoperatively. In September, of 2021, his PSA was detectable at 0.31, so starting to rise. And he underwent 18F-DCFPyL PSMA PET to inform his decision-making. He is generally in an active and healthy condition.
+
+    EXAMPLE 1 FACT EVENTS:
+    [
+      { "text":"71-year-old man", "type":"demographics", "mention":"71-year-old man", "attributes":[] },
+      { "text":"hypertension", "type":"symptoms", "mention":"hypertension", "attributes":[] },
+      { "text":"pT3N1M0", "type":"stage", "mention":"pT3N1M0", "attributes":[] },
+      { "text":"prostate adenocarcinoma", "type":"diagnosis", "mention":"adenocarcinoma", "attributes":["prostate"] },
+      { "text":"Gleason 3+4", "type":"testresult_pathology", "mention":"Gleason 3+4", "attributes":[] },
+      { "text":"treated initially, with radical prostatectomy", "type":"treatment_surgery", "mention":"radical prostatectomy", "attributes":["initially"] },
+      { "text":"pelvic lymph node dissection in March, of 2018, shortly after his initial diagnosis", "type":"", "mention":"dissection", "attributes":["pelvic lymph node", "March, of 2018", "after his initial diagnosis"] },
+      { "text":"did not opt for adjuvant radiation at the time", "type":"treatment_radiation", "mention":"adjuvant radiation", "attributes":["did not opt for", "at the time"] },
+      { "text":"PSA was undetectable postoperatively", "type":"testresult_labs", "mention":"PSA", "attributes":["undetectable","postoperatively"] },
+      { "text":"September, of 2021, his PSA was detectable at 0.31", "type":"testresult_labs", "mention":"PSA", "attributes":["September, of 2021","detectable","0.31","starting to rise"] },
+      { "text":"underwent 18F-DCFPyL PSMA PET", "type":"test_imaging", "mention":"PET", "attributes":["18F-DCFPyL PSMA"] },
+      { "text":"generally in an active and healthy condition", "type":"other", "mention":"active and healthy", "attributes":[] },
+    ]
+
+    EXAMPLE 1 FACT EVENT CLASSIFICATIONS:
+    [
+      { "mention":"71-year-old man", "attributes":[],
+        "mention_classification":"ENTAILED_BY", "mention_classification_reason": "given 71M, we can infer 71-year-old-man", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+        
+        { "mention":"hypertension", "attributes":[],
+          "mention_classification":"OTHER_NOT_SUPPORTED", "mention_classification_reason": "hypertension is not mentioned", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+          
+        { "mention":"pT3N1M0", "attributes":[],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "pT3N1M0 mentioned exactly in context text", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+          
+        { "mention":"adenocarcinoma", "attributes":["prostate"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "adenocarcinoma mentioned exactly in context text", "attribute_classifications":["ENTAILED_BY"], "attribute_classifications_reasons": ["prostate adenocarcinoma mentioned exactly in context text"] },
+          
+        { "mention":"Gleason 3+4", "attributes":[],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "Gleason 3+4 mentioned exactly in context text", "attribute_classifications":[], "attribute_classifications_reasons": [] },
+        
+        { "mention":"radical prostatectomy", "attributes":["initially"], "mention_classification":"ENTAILED_BY",
+          "mention_classification_reason": "radical prostatectomy mentioned exactly in context text",
+          "attribute_classifications":["ENTAILED_BY"], "attribute_classifications_reasons":["radical prostatectomy mentioned exactly in context text"] },
+          
+        { "mention":"dissection", "attributes":["pelvic lymph node", "March, of 2018", "after his initial diagnosis"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "dissection mentioned exactly in context text",  "attribute_classifications":["ENTAILED_BY", "ENTAILED_BY", "OTHER_NOT_SUPPORTED"], "attribute_classifications_reasons":["radical prostatectomy mentioned exactly in context text"] },
+        
+        { "mention":"adjuvant radiation", "attributes":["did not opt for", "at the time"],
+          "mention_classification":"OTHER_NOT_SUPPORTED",  "mention_classification_reason": "adjuvant radiation after the pelvic lymph node dissection was not mentioned in the context text",
+          "attribute_classifications":["OTHER_NOT_SUPPORTED", "OTHER_NOT_SUPPORTED"], "attribute_classifications_reasons":["adjuvant radiation after the pelvic lymph node dissection was not mentioned in the context text so it is not possible to know whether the patient opted for it", "adjuvant radiation after the pelvic lymph node dissection was not mentioned in the context text, so it is not possible to know the time related to the proposed radiation"] },
+        
+        { "mention":"PSA", "attributes":["undetectable","postoperatively"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "PSA after surgery undetectable was mentioned exactly",
+          "attribute_classifications":["ENTAILED_BY","ENTAILED_BY"], "attribute_classifications_reasons":["PSA after surgery undetectable was mentioned exactly","PSA after surgery undetectable was mentioned exactly"] },
+        
+        { "mention":"PSA", "attributes":["September, of 2021","detectable","0.31","starting to rise"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "This is entailed because there was indeed another PSA measurement after the other postoperative PSA",
+          "attribute_classifications":["CONTRADICTED_BY","ENTAILED_BY","OTHER_NOT_SUPPORTED"], "attribute_classifications_reasons":["The PSA measurement after the initial postoperative PSA was in September 2020 according to the context text", "There was no mention of starting to rise PSA"] },
+        
+        { "mention":"PET", "attributes":["18F-DCFPyL PSMA"],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "PET was mentioned exactly in the context text",
+          "attribute_classifications":["ENTAILED_BY"], "attribute_classifications_reasons":["18F-DCFPyL PSMA PET was mentioned exactly in the context text"] },
+        
+        { "mention":"active and healthy", "attributes":[],
+          "mention_classification":"ENTAILED_BY", "mention_classification_reason": "patient being active and healthy was mentioned exactly in the context text",
+          "attribute_classifications":[], "attribute_classifications_reasons":[] }
+    ]
+  user_chat_sourcetextprelude: |
+    SOURCE TEXT:
+  user_chat_factlistprelude: |
+    FACT EVENTS:
+  user_chat_contextprelude: |
+    CLINICAL NOTE HISTORY:
+  user_chat_outputprelude: |
+    FACT EVENT CLASSIFICATIONS:
